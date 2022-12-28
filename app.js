@@ -22,31 +22,24 @@ const INVALID_PARAM_ERROR_MSG = "Invalid parameters. Please try again";
 const SERVER_ERROR = 500;
 const SERVER_ERROR_MSG = "An error occurred on the server. Try again later.";
 
-/**
- * define endpoints here
- * use app.get() and app.post()
- * use req.params.paramname and req.query.paramname for get()
- * use req.body.paramname for post()
- * remember to use try-catch block for each endpoint
- * remmber to "let db = await getDBConnection();" and "db.close();"
- * remember whenever you are using user input for database use placeholders (?)
- */
-
 // This endpoint handles:
 // get all books
 // get books with specific genre
+// Usefull for populating with all books or specific genre of books
 app.get("/books/genre/:genre", async (req, res) => {
   try {
     let genre = req.params.genre;
     let db = await getDBConnection();
     let queryText = "SElECT id, Genre, Title, Author, Price, Stock " +
     "FROM books";
-    let extra = " WHERE Genre LIKE ?;"
+    let extra = " WHERE Genre LIKE ?"
+    let extra2 = " ORDER BY Title ASC;"
     let result;
     if (genre === "all") {
+      queryText += extra2;
       result = await db.all(queryText);
     } else {
-      queryText += extra;
+      queryText += extra + extra2;
       result = await db.all(queryText, "%" + genre + "%");
     }
     if (result.length === 0) {
@@ -65,8 +58,32 @@ app.get("/books/genre/:genre", async (req, res) => {
   }
 });
 
+// This endpoint returns all books inside the cart
+// Useful for viewing cart items
+app.get("/books/myCart", async (req, res) => {
+  try {
+    let db = await getDBConnection();
+    let queryText = "SELECT * FROM cart ORDER BY Title ASC";
+    let result = await db.all(queryText);
+    if (result.length === 0) {
+      res.type("text").send("Wow, its so empty in here...");
+    } else {
+      res.json({
+        "books": result
+      });
+    }
+    db.close();
+
+  } catch (error) {
+    console.log(error);
+    res.status(SERVER_ERROR);
+    res.type("text").send(SERVER_ERROR_MSG);
+  }
+});
+
 // This endpoint handles:
 // returns all titles with the search keyword in it regardless of genre
+// Useful to implement the search bar feature
 app.get("/books/search/:title", async (req, res) => {
   try {
     let title = req.params.title;
@@ -92,6 +109,7 @@ app.get("/books/search/:title", async (req, res) => {
 });
 
 // This endpoint returns all distinct genres in the database
+// Useful for populating the side navigation bar
 app.get("/books/all_genres", async (req, res) => {
   try {
     let db = await getDBConnection();
@@ -115,7 +133,8 @@ app.get("/books/all_genres", async (req, res) => {
   }
 });
 
-//This endpoint returns all book data related to a specific id
+// This endpoint returns all book data related to a specific id
+// Useful for viewing detailed book info when clicked
 app.get("/books/id/:id", async (req, res) => {
   try {
     let id = req.params.id;
@@ -153,6 +172,27 @@ app.post("/books/cart", async (req, res) => {
       res.status(INVALID_PARAM_ERROR);
       res.type("text").send(INVALID_PARAM_ERROR_MSG);
     }
+  } catch (error) {
+    console.log(error);
+    res.status(SERVER_ERROR);
+    res.type("text").send(SERVER_ERROR_MSG);
+  }
+});
+
+// This endpoint clears the cart and decrements the book stocks in the database
+app.post("/books/checkout", async (req, res) => {
+  try {
+    let id = req.body.id;
+    let db = await getDBConnection();
+    if (validID(id)) {
+      let count = await getCount(id);
+      let booksQuery = "UPDATE books SET Stock = Stock - " + count + " WHERE id = ?;";
+      let cartQuery = "DELETE FROM cart WHERE id = ?;"
+      await db.run(booksQuery, id);
+      await db.run(cartQuery, id);
+      res.type("text").send("success");
+    }
+    db.close();
   } catch (error) {
     console.log(error);
     res.status(SERVER_ERROR);
