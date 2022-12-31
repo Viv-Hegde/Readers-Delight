@@ -6,6 +6,7 @@
 
   function init() {
     loadGenres();
+    viewDefault();
   }
 
   function loadGenres() {
@@ -18,9 +19,14 @@
 
   function populateGenres(response) {
     id("genres").innerHTML = "";
+    let genre = gen("p");
+    genre.textContent = "All";
+    genre.addEventListener("click", viewDefault);
+    genre.classList.add("selected");
+    id("genres").appendChild(genre);
     let size = response["books"].length;
     for (let i = 0; i < size; i++) {
-      let genre = gen("p");
+      genre = gen("p");
       genre.textContent = response["books"][i]["Genre"];
       id("genres").appendChild(genre);
     }
@@ -28,6 +34,113 @@
 
   function handleErrors(err) {
     console.log(err);
+  }
+
+  function viewDefault() {
+    toggleViews(true, false, false);
+
+    fetch(BASE_URL + "genre/all")
+    .then(statusCheck)
+    .then(res => res.json())
+    .then(populateBooks)
+    .catch(handleErrors);
+  }
+
+  function toggleViews(library, book, cart) {
+    let libSec = id("library-view");
+    let bookSec = id("current-book-view");
+    let cartSec = id("cart-view");
+    if (library) {
+      libSec.classList.remove("hidden");
+    } else {
+      libSec.classList.add("hidden");
+    }
+
+    if (book) {
+      bookSec.classList.remove("hidden");
+    } else {
+      bookSec.classList.add("hidden");
+    }
+
+    if (cart) {
+      cartSec.classList.remove("hidden");
+    } else {
+      cartSec.classList.add("hidden");
+    }
+  }
+
+  function populateBooks(response) {
+    //console.log(response["books"][0]);
+    let size = response["books"].length;
+    id("library-view").innerHTML = "";
+    for (let i = 0; i < size; i++) {
+      let author = response["books"][i]["Author"];
+      let id_num = response["books"][i]["id"];
+      let title = response["books"][i]["Title"];
+      let genre = response["books"][i]["Genre"];
+      let price = response["books"][i]["Price"];
+      let stock = response["books"][i]["Stock"];
+      let newDiv = gen("div");
+      newDiv.classList.add("book-div");
+
+      let cover = gen("img");
+      cover.classList.add("mini-cover");
+      cover.src = "/img/"+id_num+".jpg";
+      cover.alt = title;
+      newDiv.appendChild(cover);
+
+      let bookInfoDiv = genBookInfo(title, author, genre, price);
+      newDiv.appendChild(bookInfoDiv);
+
+      let stockInfoDiv = genStockInfo(stock, id_num);
+      newDiv.appendChild(stockInfoDiv);
+
+      id("library-view").appendChild(newDiv);
+    }
+  }
+
+  function genStockInfo(stock, id) {
+    let stockDiv = gen("div");
+    stockDiv.classList.add("stock-info")
+    let stockInfo = gen("p");
+    let addToCartButton = gen("button");
+    addToCartButton.textContent = "Add to Cart"
+    addToCartButton.classList.add("add-to-cart-button");
+    if (stock > 0) {
+      stockInfo.textContent = "In-Stock";
+      addToCartButton.disabled = false;
+      // add to cart api call
+    } else {
+      stockInfo.textContent = "Out-of-Stock";
+      addToCartButton.disabled = true;
+    }
+    stockDiv.appendChild(stockInfo);
+    stockDiv.appendChild(addToCartButton);
+
+    return stockDiv;
+  }
+
+  function genBookInfo(title, author, genre, price) {
+      let bookInfo = gen("div");
+      bookInfo.classList.add("book-info");
+
+      let titleText = gen("p");
+      titleText.textContent = title;
+      bookInfo.appendChild(titleText);
+
+      let AuthorText = gen("p");
+      AuthorText.textContent = "Author: " + author;
+      bookInfo.appendChild(AuthorText);
+
+      let GenreText = gen("p");
+      GenreText.textContent = "Genre: " + genre;
+      bookInfo.appendChild(GenreText);
+
+      let PriceText = gen("p");
+      PriceText.textContent = "Price: " + price;
+      bookInfo.appendChild(PriceText);
+
+      return bookInfo;
   }
 
   /**
