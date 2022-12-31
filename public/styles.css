@@ -28,10 +28,24 @@ body {
 .book-div {
   display: flex;
   justify-content: space-between;
+  height: 160px;
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.book-info p {
+  margin-top: 3px;
+  margin-bottom: 3px;
+}
+
+.book-title {
+  font-weight: bolder;
+  font-size: 20px;
 }
 
 .book-info {
-
+  position: absolute;
+  left: 350px;
 }
 
 .stock-info {
@@ -41,6 +55,7 @@ body {
 .mini-cover {
   height: 50px;
   width: 50px;
+  margin-top: 16px;
 }
 
 #logo {

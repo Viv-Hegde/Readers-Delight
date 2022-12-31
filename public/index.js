@@ -126,6 +126,7 @@
 
       let titleText = gen("p");
       titleText.textContent = title;
+      titleText.classList.add("book-title");
       bookInfo.appendChild(titleText);
 
       let AuthorText = gen("p");
