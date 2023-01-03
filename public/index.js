@@ -6,7 +6,39 @@
 
   function init() {
     loadGenres();
-    viewDefault();
+    updateLibrary("All");
+    id("logo").addEventListener("click", loadDefault);
+    id("search-icon").addEventListener("click", handleSearch);
+    id("search-term").addEventListener("keypress", function(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleSearch();
+      }
+    });
+    id("cart").addEventListener("click", loadCart);
+  }
+
+  function loadCart() {
+    toggleViews(false, false, true);
+  }
+
+  function handleSearch() {
+    let searchTerm = id("search-term").value.trim();
+    id("search-term").value = "";
+    // console.log(searchTerm.length);
+    if (searchTerm.length > 0) {
+      //api call here
+      fetch(BASE_URL + "search/" + searchTerm)
+        .then(statusCheck)
+        .then(res => res.json())
+        .then(populateBooks)
+        .catch(handleErrors);
+    }
+  }
+
+  function loadDefault() {
+    selectDefaultGenre();
+    updateLibrary("All");
   }
 
   function loadGenres() {
@@ -17,29 +49,46 @@
     .catch(handleErrors);
   }
 
+  function selectDefaultGenre() {
+    let old = qs(".selected");
+    old.classList.remove("selected");
+    let all = qs("#genres p");
+    all.classList.add("selected");
+  }
+
   function populateGenres(response) {
     id("genres").innerHTML = "";
     let genre = gen("p");
     genre.textContent = "All";
-    genre.addEventListener("click", viewDefault);
+    genre.addEventListener("click", genreClickEvent);
     genre.classList.add("selected");
+    genre.classList.add("nav-element");
     id("genres").appendChild(genre);
     let size = response["books"].length;
     for (let i = 0; i < size; i++) {
       genre = gen("p");
       genre.textContent = response["books"][i]["Genre"];
+      genre.classList.add("nav-element");
+      genre.addEventListener("click", genreClickEvent);
       id("genres").appendChild(genre);
     }
+  }
+
+  function genreClickEvent() {
+    let old = qs(".selected");
+    old.classList.remove("selected");
+    let genre = this.textContent;
+    this.classList.add("selected");
+    updateLibrary(genre);
   }
 
   function handleErrors(err) {
     console.log(err);
   }
 
-  function viewDefault() {
+  function updateLibrary(genre) {
     toggleViews(true, false, false);
-
-    fetch(BASE_URL + "genre/all")
+    fetch(BASE_URL + "genre/" + genre)
     .then(statusCheck)
     .then(res => res.json())
     .then(populateBooks)
@@ -95,8 +144,17 @@
       let stockInfoDiv = genStockInfo(stock, id_num);
       newDiv.appendChild(stockInfoDiv);
 
+      newDiv.addEventListener("click", () => {
+        loadBookInfo(id_num);
+      });
+
       id("library-view").appendChild(newDiv);
     }
+  }
+
+  function loadBookInfo(id) {
+    // console.log(id);
+    toggleViews(false, true, false);
   }
 
   function genStockInfo(stock, id) {

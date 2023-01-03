@@ -17,6 +17,14 @@ body {
   width: 100%;
 }
 
+.nav-element:hover {
+  background-color: #274851;
+}
+
+#logo:hover, #cart:hover {
+  opacity: 0.8;
+}
+
 .hidden {
   display: none !important;
 }
@@ -36,6 +44,7 @@ body {
 .book-info p {
   margin-top: 3px;
   margin-bottom: 3px;
+  width: 350px;
 }
 
 .book-title {
@@ -55,7 +64,7 @@ body {
 .mini-cover {
   height: 50px;
   width: 50px;
-  margin-top: 16px;
+  margin-top: 5px;
 }
 
 #logo {

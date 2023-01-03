@@ -35,7 +35,7 @@ app.get("/books/genre/:genre", async (req, res) => {
     let extra = " WHERE Genre LIKE ?"
     let extra2 = " ORDER BY Title ASC;"
     let result;
-    if (genre === "all") {
+    if (genre === "All") {
       queryText += extra2;
       result = await db.all(queryText);
     } else {
@@ -185,7 +185,7 @@ app.post("/books/checkout", async (req, res) => {
     let id = req.body.id;
     let db = await getDBConnection();
     if (validID(id)) {
-      let count = await getCount(id);
+      let count = await getCount("cart",id);
       let booksQuery = "UPDATE books SET Stock = Stock - " + count + " WHERE id = ?;";
       let cartQuery = "DELETE FROM cart WHERE id = ?;"
       await db.run(booksQuery, id);
@@ -212,7 +212,7 @@ app.post("/books/checkout", async (req, res) => {
     }
   } else { // "REMOVE" scenario,
     // if count = 1 then delete
-    if (await getCount(id) === 1) {
+    if (await getCount("cart",id) === 1) {
       await updateCartEntry(id, false);
     } else {
       // else decrement count
@@ -231,7 +231,7 @@ async function updateCartEntry(id, param) {
   let title = result[0]["Title"];
   let author = result[0]["Author"];
   let price = result[0]["Price"];
-  let addQuery = "INSERT INTO cart ('id', 'Genre', 'Title', 'Author', 'Price', 'Count') VALUES (?, ?, ?, ?, ?, 1);";
+  let addQuery = "INSERT INTO cart ('id', 'Genre', 'Title', 'Author', 'Price', 'Stock') VALUES (?, ?, ?, ?, ?, 1);";
   let deleteQuery = "DELETE FROM cart WHERE id = ?;";
   if (param) {
     await db.run(addQuery, id, genre , title, author, price);
@@ -244,18 +244,23 @@ async function updateCartEntry(id, param) {
 // This is a helper function to increment or decrement the count of the id in cart table
 // true param increments, false param decrements
 async function updateCartCounter(id, param) {
-  let db = await getDBConnection();
-  let queryText;
-  let part1 = "UPDATE cart SET count = count ";
-  let part2 = " 1 WHERE id = ?;";
-  if (param) {
-    queryText = part1 + "+" + part2;
-    await db.run(queryText,id);
-  } else {
-    queryText = part1 + "-" + part2;
-    await db.run(queryText,id);
+  let itemsInCart = await getCount("cart", id);
+  let itemsInBooks = await getCount("books", id);
+  // console.log(itemsInCart + " in cart, " + itemsInBooks+" in books");
+  if (itemsInCart < itemsInBooks) {
+    let db = await getDBConnection();
+    let queryText;
+    let part1 = "UPDATE cart SET Stock = Stock ";
+    let part2 = " 1 WHERE id = ?;";
+    if (param) {
+      queryText = part1 + "+" + part2;
+      await db.run(queryText,id);
+    } else {
+      queryText = part1 + "-" + part2;
+      await db.run(queryText,id);
+    }
+    db.close();
   }
-  db.close();
 }
 
 // Function that returns true if a given id exists in the cart table of the database
@@ -264,11 +269,11 @@ async function inCart(id) {
 }
 
 // This is a helper function that returns the count of the id in the cart table of the database
-async function getCount(id) {
+async function getCount(table, id) {
   let db = await getDBConnection();
-  let queryText = "SELECT count FROM cart WHERE id	= ?";
+  let queryText = "SELECT Stock FROM "+table+" WHERE id	= ?";
   let result = await db.all(queryText, id);
-  let retValue = result[0]["Count"];
+  let retValue = result[0]["Stock"];
   db.close();
   // console.log(retValue);
   return retValue;
